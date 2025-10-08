@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+  OTHER
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BadgeType {
+  VERIFIED
+  SPONSORED
+  TOP_PICK
+}
+
+model User {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  email        String     @unique
+  name         String
+  bio          String?
+  birthDate    DateTime
+  gender       Gender
+  location     Json?
+  isVerified   Boolean    @default(false)
+  hasBadge     Boolean    @default(false)
+  badgeType    BadgeType?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  photos       Photo[]
+  videoProfile VideoProfile?
+  preferences  Preference?
+
+  @@index([email])
+  @@map("users")
+}
+
+model Photo {
+  id               String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId           String           @db.ObjectId
+  url              String
+  isMain           Boolean          @default(false)
+  facialAnalysis   Json?
+  moderationStatus ModerationStatus @default(PENDING)
+  uploadedAt       DateTime         @default(now())
+  moderatedBy      String?
+  moderatedAt      DateTime?
+  user             User             @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([moderationStatus])
+  @@map("photos")
+}
+
+model VideoProfile {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @unique @db.ObjectId
+  videoUrl   String
+  thumbnail  String?
+  caption    String?
+  duration   Int
+  views      Int      @default(0)
+  likes      Int      @default(0)
+  uploadedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("video_profiles")
+}
+
+model Preference {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String  @unique @db.ObjectId
+  maxDistance Int     @default(50)
+  minAge      Int     @default(18)
+  maxAge      Int     @default(99)
+  showMe      Gender?
+  user        User    @relation(fields: [userId], references: [id])
+
+  @@map("preferences")
+}
