@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+
+  sentLikes     Like[]  @relation("LikeSender")
+  receivedLikes Like[]  @relation("LikeReceiver")
+  matches       Match[] @relation(fields: [matchIds], references: [id])
+  matchIds      String[] @db.ObjectId
+
+  @@map("users")
+}
+
+model Like {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  senderId   String   @db.ObjectId
+  receiverId String   @db.ObjectId
+  sender     User     @relation("LikeSender", fields: [senderId], references: [id])
+  receiver   User     @relation("LikeReceiver", fields: [receiverId], references: [id])
+  likedAt    DateTime @default(now())
+
+  @@unique([senderId, receiverId])
+  @@index([senderId, receiverId])
+  @@map("likes")
+}
+
+model Match {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userIds   String[] @db.ObjectId
+  users     User[]   @relation(fields: [userIds], references: [id])
+  matchedAt DateTime @default(now())
+  chatId    String?  @unique @db.ObjectId
+
+  @@index([matchedAt])
+  @@map("matches")
+}
+
+model Swipe {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  targetId   String   @db.ObjectId
+  liked      Boolean
+  swipedAt   DateTime @default(now())
+
+  @@unique([userId, targetId])
+  @@index([userId])
+  @@index([swipedAt])
+  @@map("swipes")
+}
