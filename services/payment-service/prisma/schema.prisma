@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum PlanType {
+  FREE
+  PREMIUM
+  GOLD
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  UNPAID
+}
+
+enum TransactionType {
+  SUBSCRIPTION
+  UNDO_SWIPE
+  INCOGNITO_MODE
+  VERIFIED_BADGE
+  TIP
+  GIFT
+  SPONSORED_PROFILE
+  AI_CHAT_ASSISTANT
+  SUPER_LIKE
+  BOOST
+  GEOFILTER
+}
+
+enum TransactionStatus {
+  SUCCESS
+  FAILED
+  PENDING
+  REFUNDED
+}
+
+model User {
+  id               String         @id @default(auto()) @map("_id") @db.ObjectId
+  email            String         @unique
+  stripeCustomerId String?
+  createdAt        DateTime       @default(now())
+
+  subscriptions Subscription[]
+  transactions  Transaction[]
+
+  @@map("users")
+}
+
+model Subscription {
+  id                   String             @id @default(auto()) @map("_id") @db.ObjectId
+  userId               String             @db.ObjectId
+  stripeSubscriptionId String?
+  appleTransactionId   String?
+  plan                 PlanType
+  status               SubscriptionStatus
+  currentPeriodEnd     DateTime
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  user                 User               @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([plan])
+  @@map("subscriptions")
+}
+
+model Transaction {
+  id              String            @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String            @db.ObjectId
+  type            TransactionType
+  amount          Float
+  currency        String
+  status          TransactionStatus @default(PENDING)
+  stripeSessionId String?
+  appleReceipt    String?
+  description     String?
+  createdAt       DateTime          @default(now())
+  user            User              @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@map("transactions")
+}
+
+model Gift {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  senderId   String   @db.ObjectId
+  receiverId String   @db.ObjectId
+  giftType   String
+  costInETI  Int
+  sentAt     DateTime @default(now())
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@map("gifts")
+}
