@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+  OTHER
+}
+
+enum PlanType {
+  FREE
+  PREMIUM
+  GOLD
+}
+
+model User {
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  email            String    @unique
+  phone            String?   @unique
+  password         String?
+  name             String
+  birthDate        DateTime
+  gender           Gender
+  bio              String?
+  location         Json?
+  isVerified       Boolean   @default(false)
+  isPremium        Boolean   @default(false)
+  planType         PlanType  @default(FREE)
+  stripeCustomerId String?
+  fcmToken         String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  profile      Profile?
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Profile {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @unique @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  bio       String?
+  interests String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("profiles")
+}
+
+model RefreshToken {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model OAuthAccount {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  provider   String
+  providerId String
+  email      String?
+  createdAt  DateTime @default(now())
+
+  @@unique([provider, providerId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
